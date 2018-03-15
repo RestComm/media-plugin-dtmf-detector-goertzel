@@ -23,6 +23,8 @@
 package org.restcomm.media.plugin.dtmf;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.Queue;
@@ -34,12 +36,9 @@ import org.restcomm.media.ComponentType;
 import org.restcomm.media.component.audio.GoertzelFilter;
 import org.restcomm.media.core.resource.dtmf.DtmfDetector;
 import org.restcomm.media.core.resource.dtmf.DtmfDetectorListener;
-import org.restcomm.media.resource.dtmf.DtmfBuffer;
 import org.restcomm.media.spi.format.Format;
 import org.restcomm.media.spi.format.FormatFactory;
 import org.restcomm.media.spi.format.Formats;
-import org.restcomm.media.spi.listener.Listeners;
-import org.restcomm.media.spi.listener.TooManyListenersException;
 import org.restcomm.media.spi.memory.Frame;
 
 /**
@@ -58,8 +57,6 @@ import org.restcomm.media.spi.memory.Frame;
  * @author Henrique Rosa (henrique.rosa@telestax.com)
  */
 public class GoertzelDtmfDetector implements DtmfDetector {
-
-    private static final long serialVersionUID = 450306501541827622L;
 
     private final static Format linear = FormatFactory.createAudioFormat("linear", 8000, 16, 1);
     private final static Formats formats = new Formats();
@@ -96,17 +93,11 @@ public class GoertzelDtmfDetector implements DtmfDetector {
     private long elapsedTime;
     private volatile boolean waiting;
 
-    private final DtmfBuffer dtmfBuffer;
-
-    private final Listeners<org.restcomm.media.spi.dtmf.DtmfDetectorListener> listeners = new Listeners<org.restcomm.media.spi.dtmf.DtmfDetectorListener>();
+    private final List<DtmfDetectorListener> listeners = new ArrayList<DtmfDetectorListener>();
 
     private static final Logger logger = LogManager.getLogger(GoertzelDtmfDetector.class);
 
     public GoertzelDtmfDetector(int toneVolume, int toneDuration, int toneInterval) {
-
-        // DTMF Components
-        this.dtmfBuffer = new DtmfBuffer(null);
-        this.dtmfBuffer.setInterdigitInterval(toneInterval);
 
         // Detector Configuration
         this.level = toneVolume;
@@ -128,21 +119,6 @@ public class GoertzelDtmfDetector implements DtmfDetector {
         this.lastTone = "";
         this.elapsedTime = 0;
         this.waiting = false;
-    }
-
-    public GoertzelDtmfDetector() {
-        //this(DEFAULT_SIGNAL_LEVEL, DEFAULT_SIGNAL_DURATION, DEFAULT_INTERDIGIT_INTERVAL);
-        this(0, 0, 0);
-    }
-
-    public void activate() {
-        this.offset = 0;
-        this.maxAmpl = 0;
-        this.lastTone = "";
-        this.elapsedTime = 0;
-        this.waiting = false;
-
-        this.dtmfBuffer.clear();
     }
 
     public void deactivate() {
@@ -210,8 +186,12 @@ public class GoertzelDtmfDetector implements DtmfDetector {
                             logger.trace("Waiting: " + waiting + " [last tone=" + this.lastTone + ", elapsed time=" + elapsedTime + "]");
                         }
 
-                        // Push tone into DTMF buffer
-                        dtmfBuffer.push(tone);
+                        // Inform liteners about DTMF tone detection
+			synchronized(this) {
+                            for (DtmfDetectorListener listener : listeners) {
+                                listener.onDtmfDetected(tone);
+                            }
+                        }
                     }
                 }
             }
@@ -298,32 +278,16 @@ public class GoertzelDtmfDetector implements DtmfDetector {
         return this.toneInterval;
     }
 
-    protected void fireEvent(String tone) {
+    public synchronized void addListener(DtmfDetectorListener listener) {
+        listeners.add(listener);
     }
 
-    public void flushBuffer() {
-        dtmfBuffer.flush();
+    public synchronized void removeListener(DtmfDetectorListener listener) {
+        listeners.remove(listener);
     }
 
-    public void clearBuffer() {
-        dtmfBuffer.clear();
-    }
-
-    public void addListener(DtmfDetectorListener listener) throws TooManyListenersException {
-        //listeners.add(listener);
-    }
-
-    public void removeListener(DtmfDetectorListener listener) {
-        //listeners.remove(listener);
-    }
-
-    public void clearAllListeners() {
+    public synchronized void clearAllListeners() {
         listeners.clear();
     }
-
-    public void clearDigits() {
-        dtmfBuffer.clear();
-    }
-
 }
 
