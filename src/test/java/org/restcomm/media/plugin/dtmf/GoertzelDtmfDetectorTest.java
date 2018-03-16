@@ -19,10 +19,6 @@
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
 
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package org.restcomm.media.plugin.dtmf;
 
 import net.ripe.hadoop.pcap.packet.Packet;

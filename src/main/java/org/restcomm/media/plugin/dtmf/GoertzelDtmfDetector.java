@@ -161,10 +161,8 @@ public class GoertzelDtmfDetector implements DtmfDetector {
                         }
 
                         // Inform liteners about DTMF tone detection
-                        synchronized (this) {
-                            for (DtmfDetectorListener listener : listeners) {
-                                listener.onDtmfDetected(tone);
-                            }
+                        for (DtmfDetectorListener listener : listeners) {
+                            listener.onDtmfDetected(tone);
                         }
                     }
                 }
