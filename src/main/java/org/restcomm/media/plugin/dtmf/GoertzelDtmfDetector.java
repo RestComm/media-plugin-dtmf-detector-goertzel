@@ -97,6 +97,10 @@ public class GoertzelDtmfDetector implements DtmfDetector {
 
     private static final Logger logger = LogManager.getLogger(GoertzelDtmfDetector.class);
 
+    public GoertzelDtmfDetector() {
+        this(-35, 40, 500);
+    }
+
     public GoertzelDtmfDetector(int toneVolume, int toneDuration, int toneInterval) {
 
         // Detector Configuration
@@ -138,7 +142,7 @@ public class GoertzelDtmfDetector implements DtmfDetector {
         // until a period of data (based on frame duration accumulation) elapses.
         if (waiting) {
             this.elapsedTime += duration;
-            this.waiting = (this.elapsedTime < this.toneInterval * 1000000);
+            this.waiting = (this.elapsedTime < this.toneInterval);
 
             if (waiting) {
                 return;

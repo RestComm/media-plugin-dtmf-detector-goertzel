@@ -47,6 +47,10 @@ public class GoertzelDtmfDetectorTest implements DtmfDetectorListener {
     private GoertzelDtmfDetector detector;
     private GeneratorImpl generator;
     
+    private String[] testExpectedTones;
+    private int currentToneIndex;
+    private boolean testFailed;
+
     private String tone;
     
     @Before
@@ -75,14 +79,32 @@ public class GoertzelDtmfDetectorTest implements DtmfDetectorListener {
     }
 
     @Test
-    public void testPcapFile() {
+    public void testDtmf4DigitsFast() {
+        String[] expectedTones = {"1", "2", "3", "4"};
+        testDtmfPcapFile("/dtmf_4_digits_fast.pcap", expectedTones);
+    }
+
+    @Test
+    public void testDtmf4DigitsSlow() {
+        String[] expectedTones = {"1", "2", "3", "4"};
+        testDtmfPcapFile("/dtmf_4_digits_slow.pcap", expectedTones);
+    }
+
+    @Test
+    public void testDtmf2DigitPairs() {
+        String[] expectedTones = {"1", "1", "2", "2"};
+        testDtmfPcapFile("/dtmf_2_digit_pairs.pcap", expectedTones);
+    }
+
+    public void testDtmfPcapFile(String resourceName, String[] expectedTones) {
         // given
-        final URL inputFileUrl = this.getClass().getResource("/dtmf-g711-recording.pcap");
-        final org.restcomm.media.codec.g711.ulaw.Decoder decoder = new org.restcomm.media.codec.g711.ulaw.Decoder();
+        testExpectedTones = expectedTones;
+        currentToneIndex = 0;
+        testFailed = false;
+        final URL inputFileUrl = this.getClass().getResource(resourceName);
+        final org.restcomm.media.codec.g711.alaw.Decoder decoder = new org.restcomm.media.codec.g711.alaw.Decoder();
 
         // when
-        int framesDetected = 0;
-        int framesCount = 0;
         PcapFile pcap = new PcapFile(inputFileUrl);
         try {
             pcap.open();
@@ -104,22 +126,23 @@ public class GoertzelDtmfDetectorTest implements DtmfDetectorListener {
                 encodedFrame.setDuration(20);
                 System.arraycopy(rtpPayload, 0, encodedFrame.getData(), 0, rtpPayload.length);
                 Frame decodedFrame = decoder.process(encodedFrame);
-                framesCount++;
                 detector.detect(decodedFrame.getData(), 20);
-                framesDetected++;
             }
             pcap.close();
         } catch (IOException e) {
             log.error("Could not read file", e);
-            fail("Speech Detector test file access error");
+            fail("DTMF tone detector test file access error");
         }
 
         // then
-        assertTrue((double)framesDetected / (double)framesCount > 0.38);
+        assertFalse(testFailed);
     }
 
     @Override
     public void onDtmfDetected(String tone) {
+        if (tone != testExpectedTones[currentToneIndex])
+            testFailed = true;
+        currentToneIndex++;
     }
 
     /**
