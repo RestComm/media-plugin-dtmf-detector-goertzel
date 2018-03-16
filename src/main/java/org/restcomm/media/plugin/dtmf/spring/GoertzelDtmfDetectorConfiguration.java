@@ -1,8 +1,7 @@
 /*
- * JBoss, Home of Professional Open Source
- * Copyright 2011, Red Hat, Inc. and individual contributors
- * by the @authors tag. See the copyright.txt in the distribution for a
- * full listing of individual contributors.
+ * TeleStax, Open Source Cloud Communications
+ * Copyright 2011-2018, Telestax Inc and individual contributors
+ * by the @authors tag.
  *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
@@ -41,16 +40,16 @@ public class GoertzelDtmfDetectorConfiguration {
     private int toneInterval;
 
     public GoertzelDtmfDetectorConfiguration() {
-        this.toneVolume = 0;
-        this.toneDuration = 0;
-	this.toneInterval = 0;
+        this.toneVolume = -30;
+        this.toneDuration = 80;
+        this.toneInterval = 20;
     }
 
     public int getToneVolume() {
         return toneVolume;
     }
 
-    public void setStartNoiseThreshold(int toneVolume) {
+    public void setToneVolume(int toneVolume) {
         this.toneVolume = toneVolume;
     }
 
@@ -61,7 +60,7 @@ public class GoertzelDtmfDetectorConfiguration {
     public void setToneDuration(int toneDuration) {
         this.toneDuration = toneDuration;
     }
-   
+
     public int getToneInterval() {
         return toneInterval;
     }
