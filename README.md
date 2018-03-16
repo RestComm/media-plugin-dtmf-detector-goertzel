@@ -1,5 +1,5 @@
-# Noise Adaptive - Voice Activity Detection plugin
+# DTMF detector plugin based on Goertzel algorithm
 
-Noise Adaptive Voice Activity Detector plugin uses adaptive threshold value in speech detection. The decision whether the content of sample buffer contains speech signal is based on signal energy and number of zero crossings.
+DTMF Detector plugin component performs spectral analysis of audio stream samples and fires an event when DTMF tone is detected.
 
 Plugin is loaded into Media Server workspace using Spring Boot framework.
