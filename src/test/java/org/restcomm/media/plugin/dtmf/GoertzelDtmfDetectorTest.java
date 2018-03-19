@@ -37,6 +37,10 @@ import org.restcomm.media.core.scheduler.WallClock;
 import org.restcomm.media.core.spi.memory.Frame;
 import org.restcomm.media.core.spi.memory.Memory;
 
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+
 import java.io.IOException;
 import java.net.URL;
 
@@ -46,7 +50,7 @@ import static org.junit.Assert.*;
  * @author yulian oifa
  * @author Vladimir Morosev (vladimir.morosev@telestax.com)
  */
-public class GoertzelDtmfDetectorTest implements DtmfDetectorListener {
+public class GoertzelDtmfDetectorTest {
 
     private static final Logger log = Logger.getLogger(GoertzelDtmfDetectorTest.class);
 
@@ -55,10 +59,6 @@ public class GoertzelDtmfDetectorTest implements DtmfDetectorListener {
 
     private GoertzelDtmfDetector detector;
     private GeneratorImpl generator;
-
-    private String[] testExpectedTones;
-    private int currentToneIndex;
-    private boolean testFailed;
 
     private String tone;
 
@@ -75,44 +75,74 @@ public class GoertzelDtmfDetectorTest implements DtmfDetectorListener {
         generator.setVolume(-20);
 
         detector = new GoertzelDtmfDetector(-35, 40, 500);
-
-        detector.observe(this);
     }
 
     @After
     public void tearDown() {
-        detector.forget(this);
         generator.deactivate();
         scheduler.stop();
     }
 
     @Test
     public void testDtmf4DigitsFast() {
-        String[] expectedTones = {"1", "2", "3", "4"};
-        testDtmfPcapFile("/dtmf_4_digits_fast.pcap", expectedTones);
+
+        // given
+        final DtmfDetectorListener observer = mock(DtmfDetectorListener.class);
+        detector.observe(observer);
+
+        // when
+        playDtmfPcapFile("/dtmf_4_digits_fast.pcap", observer);
+
+        // then
+        verify(observer, times(1)).onDtmfDetected("1");
+        verify(observer, times(1)).onDtmfDetected("2");
+        verify(observer, times(1)).onDtmfDetected("3");
+        verify(observer, times(1)).onDtmfDetected("4");
+
+        detector.forget(observer);
     }
 
     @Test
     public void testDtmf4DigitsSlow() {
-        String[] expectedTones = {"1", "2", "3", "4"};
-        testDtmfPcapFile("/dtmf_4_digits_slow.pcap", expectedTones);
+
+        // given
+        final DtmfDetectorListener observer = mock(DtmfDetectorListener.class);
+        detector.observe(observer);
+
+        // when
+        playDtmfPcapFile("/dtmf_4_digits_slow.pcap", observer);
+
+        // then
+        verify(observer, times(1)).onDtmfDetected("1");
+        verify(observer, times(1)).onDtmfDetected("2");
+        verify(observer, times(1)).onDtmfDetected("3");
+        verify(observer, times(1)).onDtmfDetected("4");
+
+        detector.forget(observer);
     }
 
     @Test
     public void testDtmf2DigitPairs() {
-        String[] expectedTones = {"1", "1", "2", "2"};
-        testDtmfPcapFile("/dtmf_2_digit_pairs.pcap", expectedTones);
+
+        // given
+        final DtmfDetectorListener observer = mock(DtmfDetectorListener.class);
+        detector.observe(observer);
+
+        // when
+        playDtmfPcapFile("/dtmf_2_digit_pairs.pcap", observer);
+
+        // then
+        verify(observer, times(2)).onDtmfDetected("1");
+        verify(observer, times(2)).onDtmfDetected("2");
+
+        detector.forget(observer);
     }
 
-    public void testDtmfPcapFile(String resourceName, String[] expectedTones) {
-        // given
-        testExpectedTones = expectedTones;
-        currentToneIndex = 0;
-        testFailed = false;
+    public void playDtmfPcapFile(String resourceName, DtmfDetectorListener observer) {
+
         final URL inputFileUrl = this.getClass().getResource(resourceName);
         final org.restcomm.media.core.codec.g711.alaw.Decoder decoder = new org.restcomm.media.core.codec.g711.alaw.Decoder();
 
-        // when
         PcapFile pcap = new PcapFile(inputFileUrl);
         try {
             pcap.open();
@@ -141,17 +171,6 @@ public class GoertzelDtmfDetectorTest implements DtmfDetectorListener {
             log.error("Could not read file", e);
             fail("DTMF tone detector test file access error");
         }
-
-        // then
-        assertFalse(testFailed);
-    }
-
-    @Override
-    public void onDtmfDetected(String tone) {
-        if (tone != testExpectedTones[currentToneIndex]) {
-            testFailed = true;
-        }
-        currentToneIndex++;
     }
 
     /**
