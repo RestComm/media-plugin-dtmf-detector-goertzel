@@ -29,11 +29,7 @@ import org.junit.Test;
 import org.restcomm.media.core.pcap.GenericPcapReader;
 import org.restcomm.media.core.pcap.PcapFile;
 import org.restcomm.media.core.resource.dtmf.DtmfDetectorListener;
-import org.restcomm.media.core.resource.dtmf.GeneratorImpl;
 import org.restcomm.media.core.rtp.RtpPacket;
-import org.restcomm.media.core.scheduler.Clock;
-import org.restcomm.media.core.scheduler.PriorityQueueScheduler;
-import org.restcomm.media.core.scheduler.WallClock;
 import org.restcomm.media.core.spi.memory.Frame;
 import org.restcomm.media.core.spi.memory.Memory;
 
@@ -54,33 +50,15 @@ public class GoertzelDtmfDetectorTest {
 
     private static final Logger log = Logger.getLogger(GoertzelDtmfDetectorTest.class);
 
-    private Clock clock;
-    private PriorityQueueScheduler scheduler;
-
     private GoertzelDtmfDetector detector;
-    private GeneratorImpl generator;
-
-    private String tone;
 
     @Before
     public void setUp() {
-        clock = new WallClock();
-
-        scheduler = new PriorityQueueScheduler();
-        scheduler.setClock(clock);
-        scheduler.start();
-
-        generator = new GeneratorImpl("dtmf", scheduler);
-        generator.setToneDuration(500);
-        generator.setVolume(-20);
-
         detector = new GoertzelDtmfDetector(-35, 40, 500);
     }
 
     @After
     public void tearDown() {
-        generator.deactivate();
-        scheduler.stop();
     }
 
     @Test
@@ -171,226 +149,5 @@ public class GoertzelDtmfDetectorTest {
             log.error("Could not read file", e);
             fail("DTMF tone detector test file access error");
         }
-    }
-
-    /**
-     * Test of setDuration method, of class GoertzelDtmfDetector.
-     */
-    //@Test
-    public void testDigit1() throws InterruptedException {
-        generator.setDigit("1");
-        generator.activate();
-
-        Thread.sleep(1000);
-
-        generator.deactivate();
-
-        assertEquals("1", tone);
-
-        tone = "";
-        generator.setOOBDigit("1");
-        generator.activate();
-
-        Thread.sleep(1000);
-
-        generator.deactivate();
-
-        assertEquals("1", tone);
-    }
-
-    //@Test
-    public void testDigit2() throws InterruptedException {
-        generator.setDigit("2");
-        generator.activate();
-
-        Thread.sleep(1000);
-
-        generator.deactivate();
-
-        assertEquals("2", tone);
-
-        tone = "";
-        generator.setOOBDigit("2");
-        generator.activate();
-
-        Thread.sleep(1000);
-
-        generator.deactivate();
-
-        assertEquals("2", tone);
-    }
-
-    //@Test
-    public void testDigit3() throws InterruptedException {
-        generator.setDigit("3");
-        generator.activate();
-
-        Thread.sleep(1000);
-
-        generator.deactivate();
-
-        assertEquals("3", tone);
-
-        tone = "";
-        generator.setOOBDigit("3");
-        generator.activate();
-
-        Thread.sleep(1000);
-
-        generator.deactivate();
-
-        assertEquals("3", tone);
-    }
-
-    //@Test
-    public void testDigit4() throws InterruptedException {
-        generator.setDigit("4");
-        generator.activate();
-
-        Thread.sleep(1000);
-
-        generator.deactivate();
-
-        assertEquals("4", tone);
-
-        tone = "";
-        generator.setOOBDigit("4");
-        generator.activate();
-
-        Thread.sleep(1000);
-
-        generator.deactivate();
-
-        assertEquals("4", tone);
-    }
-
-    //@Test
-    public void testDigit5() throws InterruptedException {
-        generator.setDigit("5");
-        generator.activate();
-
-        Thread.sleep(1000);
-
-        generator.deactivate();
-
-        assertEquals("5", tone);
-
-        tone = "";
-        generator.setOOBDigit("5");
-        generator.activate();
-
-        Thread.sleep(1000);
-
-        generator.deactivate();
-
-        assertEquals("5", tone);
-    }
-
-    //@Test
-    public void testDigit6() throws InterruptedException {
-        generator.setDigit("6");
-        generator.activate();
-
-        Thread.sleep(1000);
-
-        generator.deactivate();
-
-        assertEquals("6", tone);
-
-        tone = "";
-        generator.setOOBDigit("6");
-        generator.activate();
-
-        Thread.sleep(1000);
-
-        generator.deactivate();
-
-        assertEquals("6", tone);
-    }
-
-    //@Test
-    public void testDigit7() throws InterruptedException {
-        generator.setDigit("7");
-        generator.activate();
-
-        Thread.sleep(1000);
-
-        generator.deactivate();
-
-        assertEquals("7", tone);
-
-        tone = "";
-        generator.setOOBDigit("7");
-        generator.activate();
-
-        Thread.sleep(1000);
-
-        generator.deactivate();
-
-        assertEquals("7", tone);
-    }
-
-    //@Test
-    public void testDigit8() throws InterruptedException {
-        generator.setDigit("8");
-        generator.activate();
-
-        Thread.sleep(1000);
-
-        generator.deactivate();
-
-        assertEquals("8", tone);
-
-        tone = "";
-        generator.setOOBDigit("8");
-        generator.activate();
-
-        Thread.sleep(1000);
-
-        generator.deactivate();
-
-        assertEquals("8", tone);
-    }
-
-    //@Test
-    public void testDigit9() throws InterruptedException {
-        generator.setDigit("9");
-        generator.activate();
-
-        generator.deactivate();
-
-        assertEquals("9", tone);
-
-        tone = "";
-        generator.setOOBDigit("9");
-        generator.activate();
-
-        Thread.sleep(1000);
-
-        generator.deactivate();
-
-        assertEquals("9", tone);
-    }
-
-    //@Test
-    public void testDigit0() throws InterruptedException {
-        generator.setDigit("0");
-        generator.activate();
-
-        Thread.sleep(1000);
-
-        generator.deactivate();
-
-        assertEquals("0", tone);
-
-        tone = "";
-        generator.setOOBDigit("0");
-        generator.activate();
-
-        Thread.sleep(1000);
-
-        generator.deactivate();
-
-        assertEquals("0", tone);
     }
 }
