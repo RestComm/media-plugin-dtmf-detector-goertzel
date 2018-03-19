@@ -26,6 +26,7 @@ import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.restcomm.media.core.codec.g711.alaw.Decoder;
 import org.restcomm.media.core.pcap.GenericPcapReader;
 import org.restcomm.media.core.pcap.PcapFile;
 import org.restcomm.media.core.resource.dtmf.DtmfDetectorListener;
@@ -39,6 +40,10 @@ import static org.mockito.Mockito.verify;
 
 import java.io.IOException;
 import java.net.URL;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.*;
 
@@ -50,81 +55,23 @@ public class GoertzelDtmfDetectorTest {
 
     private static final Logger log = Logger.getLogger(GoertzelDtmfDetectorTest.class);
 
-    private GoertzelDtmfDetector detector;
+    private ScheduledExecutorService scheduler;
+    private Decoder decoder;
 
-    @Before
-    public void setUp() {
-        detector = new GoertzelDtmfDetector(-35, 40, 500);
-    }
+    private class PlayPacketTask implements Runnable {
 
-    @After
-    public void tearDown() {
-    }
+        private PcapFile pcap;
+        private GoertzelDtmfDetector detector;
+        private double lastTimestamp;
 
-    @Test
-    public void testDtmf4DigitsFast() {
+        public PlayPacketTask(PcapFile pcap, GoertzelDtmfDetector detector, double lastTimestamp) {
+            this.pcap = pcap;
+            this.detector = detector;
+            this.lastTimestamp = lastTimestamp;
+        }
 
-        // given
-        final DtmfDetectorListener observer = mock(DtmfDetectorListener.class);
-        detector.observe(observer);
-
-        // when
-        playDtmfPcapFile("/dtmf_4_digits_fast.pcap", observer);
-
-        // then
-        verify(observer, times(1)).onDtmfDetected("1");
-        verify(observer, times(1)).onDtmfDetected("2");
-        verify(observer, times(1)).onDtmfDetected("3");
-        verify(observer, times(1)).onDtmfDetected("4");
-
-        detector.forget(observer);
-    }
-
-    @Test
-    public void testDtmf4DigitsSlow() {
-
-        // given
-        final DtmfDetectorListener observer = mock(DtmfDetectorListener.class);
-        detector.observe(observer);
-
-        // when
-        playDtmfPcapFile("/dtmf_4_digits_slow.pcap", observer);
-
-        // then
-        verify(observer, times(1)).onDtmfDetected("1");
-        verify(observer, times(1)).onDtmfDetected("2");
-        verify(observer, times(1)).onDtmfDetected("3");
-        verify(observer, times(1)).onDtmfDetected("4");
-
-        detector.forget(observer);
-    }
-
-    @Test
-    public void testDtmf2DigitPairs() {
-
-        // given
-        final DtmfDetectorListener observer = mock(DtmfDetectorListener.class);
-        detector.observe(observer);
-
-        // when
-        playDtmfPcapFile("/dtmf_2_digit_pairs.pcap", observer);
-
-        // then
-        verify(observer, times(2)).onDtmfDetected("1");
-        verify(observer, times(2)).onDtmfDetected("2");
-
-        detector.forget(observer);
-    }
-
-    public void playDtmfPcapFile(String resourceName, DtmfDetectorListener observer) {
-
-        final URL inputFileUrl = this.getClass().getResource(resourceName);
-        final org.restcomm.media.core.codec.g711.alaw.Decoder decoder = new org.restcomm.media.core.codec.g711.alaw.Decoder();
-
-        PcapFile pcap = new PcapFile(inputFileUrl);
-        try {
-            pcap.open();
-            while (!pcap.isComplete()) {
+        public void run() {
+            if (!pcap.isComplete()) {
                 final Packet packet = pcap.read();
                 byte[] payload = (byte[]) packet.get(GenericPcapReader.PAYLOAD);
 
@@ -134,17 +81,115 @@ public class GoertzelDtmfDetectorTest {
                 byte[] rtpPayload = new byte[rtpPacket.getPayloadLength()];
                 rtpPacket.getPayload(rtpPayload);
 
+                double timestamp = (double) packet.get(Packet.TIMESTAMP_USEC);
+                int duration;
+                if (lastTimestamp == 0.0)
+                    duration = 20;
+                else
+                    duration = (int) (((double) packet.get(Packet.TIMESTAMP_USEC) - lastTimestamp) * 1000);
+
                 Frame encodedFrame = Memory.allocate(rtpPayload.length);
                 encodedFrame.setOffset(0);
                 encodedFrame.setLength(rtpPayload.length);
                 encodedFrame.setFormat(decoder.getSupportedInputFormat());
                 encodedFrame.setTimestamp(System.currentTimeMillis());
-                encodedFrame.setDuration(20);
+                encodedFrame.setDuration(duration);
                 System.arraycopy(rtpPayload, 0, encodedFrame.getData(), 0, rtpPayload.length);
                 Frame decodedFrame = decoder.process(encodedFrame);
-                detector.detect(decodedFrame.getData(), 20);
+                detector.detect(decodedFrame.getData(), duration);
+                scheduler.schedule(new PlayPacketTask(pcap, detector, timestamp), duration, TimeUnit.MILLISECONDS);
+            } else {
+                try {
+                    pcap.close();
+                } catch (IOException e) {
+                    log.error("Could not read file", e);
+                    fail("DTMF tone detector test file access error");
+                }
             }
-            pcap.close();
+        }
+    }
+
+    @Before
+    public void setUp() {
+        scheduler = Executors.newScheduledThreadPool(1);
+        decoder = new Decoder();
+    }
+
+    @After
+    public void tearDown() {
+        scheduler.shutdown();
+    }
+
+    @Test
+    public void testDtmf4DigitsFast() throws InterruptedException {
+
+        // given
+        final DtmfDetectorListener observer = mock(DtmfDetectorListener.class);
+        final GoertzelDtmfDetector detector = new GoertzelDtmfDetector(-35, 40, 200);
+        detector.observe(observer);
+
+        // when
+        playDtmfPcapFile("/dtmf_4_digits_fast.pcap", detector);
+
+        Thread.sleep(4000);
+
+        // then
+        verify(observer, times(1)).onDtmfDetected("1");
+        verify(observer, times(1)).onDtmfDetected("2");
+        verify(observer, times(1)).onDtmfDetected("3");
+        verify(observer, times(1)).onDtmfDetected("4");
+
+        detector.forget(observer);
+    }
+
+    @Test
+    public void testDtmf4DigitsSlow() throws InterruptedException {
+
+        // given
+        final DtmfDetectorListener observer = mock(DtmfDetectorListener.class);
+        final GoertzelDtmfDetector detector = new GoertzelDtmfDetector(-35, 40, 500);
+        detector.observe(observer);
+
+        // when
+        playDtmfPcapFile("/dtmf_4_digits_slow.pcap", detector);
+
+	Thread.sleep(9000);
+
+        // then
+        verify(observer, times(1)).onDtmfDetected("1");
+        verify(observer, times(1)).onDtmfDetected("2");
+        verify(observer, times(1)).onDtmfDetected("3");
+        verify(observer, times(1)).onDtmfDetected("4");
+
+        detector.forget(observer);
+    }
+
+    @Test
+    public void testDtmf2DigitPairs() throws InterruptedException {
+
+        // given
+        final DtmfDetectorListener observer = mock(DtmfDetectorListener.class);
+        final GoertzelDtmfDetector detector = new GoertzelDtmfDetector(-35, 40, 500);
+        detector.observe(observer);
+
+        // when
+        playDtmfPcapFile("/dtmf_2_digit_pairs.pcap", detector);
+
+        Thread.sleep(5000);
+
+        // then
+        verify(observer, times(2)).onDtmfDetected("1");
+        verify(observer, times(2)).onDtmfDetected("2");
+
+        detector.forget(observer);
+    }
+
+    public void playDtmfPcapFile(String resourceName, GoertzelDtmfDetector detector) {
+        final URL inputFileUrl = this.getClass().getResource(resourceName);
+        PcapFile pcap = new PcapFile(inputFileUrl);
+        try {
+            pcap.open();
+            scheduler.schedule(new PlayPacketTask(pcap, detector, 0.0), 0, TimeUnit.MILLISECONDS);
         } catch (IOException e) {
             log.error("Could not read file", e);
             fail("DTMF tone detector test file access error");
