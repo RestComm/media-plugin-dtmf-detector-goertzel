@@ -69,7 +69,7 @@ public class GoertzelDtmfDetectorTest {
     public void testDtmf4DigitsFast() throws InterruptedException {
         // given
         final DtmfDetectorListener observer = mock(DtmfDetectorListener.class);
-        final GoertzelDtmfDetector detector = new GoertzelDtmfDetector(-35, 40, 200);
+        final GoertzelDtmfDetector detector = new GoertzelDtmfDetector(-35, 80, 20);
         detector.observe(observer);
 
         // when
@@ -88,7 +88,7 @@ public class GoertzelDtmfDetectorTest {
     public void testDtmf4DigitsSlow() throws InterruptedException {
         // given
         final DtmfDetectorListener observer = mock(DtmfDetectorListener.class);
-        final GoertzelDtmfDetector detector = new GoertzelDtmfDetector(-35, 40, 500);
+        final GoertzelDtmfDetector detector = new GoertzelDtmfDetector(-35, 80, 20);
         detector.observe(observer);
 
         // when
@@ -107,7 +107,7 @@ public class GoertzelDtmfDetectorTest {
     public void testDtmf2DigitPairs() throws InterruptedException {
         // given
         final DtmfDetectorListener observer = mock(DtmfDetectorListener.class);
-        final GoertzelDtmfDetector detector = new GoertzelDtmfDetector(-35, 40, 500);
+        final GoertzelDtmfDetector detector = new GoertzelDtmfDetector(-35, 80, 20);
         detector.observe(observer);
 
         // when
