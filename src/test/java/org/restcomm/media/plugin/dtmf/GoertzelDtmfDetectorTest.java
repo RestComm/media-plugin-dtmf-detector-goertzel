@@ -34,18 +34,14 @@ import org.restcomm.media.core.rtp.RtpPacket;
 import org.restcomm.media.core.spi.memory.Frame;
 import org.restcomm.media.core.spi.memory.Memory;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-
 import java.io.IOException;
 import java.net.URL;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.fail;
+import static org.mockito.Mockito.*;
 
 /**
  * @author yulian oifa
@@ -57,6 +53,84 @@ public class GoertzelDtmfDetectorTest {
 
     private ScheduledExecutorService scheduler;
     private Decoder decoder;
+
+    @Before
+    public void setUp() {
+        scheduler = Executors.newScheduledThreadPool(1);
+        decoder = new Decoder();
+    }
+
+    @After
+    public void tearDown() {
+        scheduler.shutdown();
+    }
+
+    @Test
+    public void testDtmf4DigitsFast() throws InterruptedException {
+        // given
+        final DtmfDetectorListener observer = mock(DtmfDetectorListener.class);
+        final GoertzelDtmfDetector detector = new GoertzelDtmfDetector(-35, 40, 200);
+        detector.observe(observer);
+
+        // when
+        playDtmfPcapFile("/dtmf_4_digits_fast.pcap", detector);
+
+        // then
+        verify(observer, timeout(4000)).onDtmfDetected("1");
+        verify(observer, timeout(4000)).onDtmfDetected("2");
+        verify(observer, timeout(4000)).onDtmfDetected("3");
+        verify(observer, timeout(4000)).onDtmfDetected("4");
+
+        detector.forget(observer);
+    }
+
+    @Test
+    public void testDtmf4DigitsSlow() throws InterruptedException {
+        // given
+        final DtmfDetectorListener observer = mock(DtmfDetectorListener.class);
+        final GoertzelDtmfDetector detector = new GoertzelDtmfDetector(-35, 40, 500);
+        detector.observe(observer);
+
+        // when
+        playDtmfPcapFile("/dtmf_4_digits_slow.pcap", detector);
+
+        // then
+        verify(observer, timeout(9000)).onDtmfDetected("1");
+        verify(observer, timeout(9000)).onDtmfDetected("2");
+        verify(observer, timeout(9000)).onDtmfDetected("3");
+        verify(observer, timeout(9000)).onDtmfDetected("4");
+
+        detector.forget(observer);
+    }
+
+    @Test
+    public void testDtmf2DigitPairs() throws InterruptedException {
+        // given
+        final DtmfDetectorListener observer = mock(DtmfDetectorListener.class);
+        final GoertzelDtmfDetector detector = new GoertzelDtmfDetector(-35, 40, 500);
+        detector.observe(observer);
+
+        // when
+        playDtmfPcapFile("/dtmf_2_digit_pairs.pcap", detector);
+
+        // then
+        verify(observer, timeout(5000).times(2)).onDtmfDetected("1");
+        verify(observer, timeout(5000).times(2)).onDtmfDetected("2");
+
+        detector.forget(observer);
+    }
+
+    public void playDtmfPcapFile(String resourceName, GoertzelDtmfDetector detector) {
+        final URL inputFileUrl = this.getClass().getResource(resourceName);
+        PcapFile pcap = new PcapFile(inputFileUrl);
+        try {
+            pcap.open();
+            scheduler.schedule(new PlayPacketTask(pcap, detector, 0.0), 0, TimeUnit.MILLISECONDS);
+        } catch (IOException e) {
+            log.error("Could not read file", e);
+            fail("DTMF tone detector test file access error");
+        }
+    }
 
     private class PlayPacketTask implements Runnable {
 
@@ -106,93 +180,6 @@ public class GoertzelDtmfDetectorTest {
                     fail("DTMF tone detector test file access error");
                 }
             }
-        }
-    }
-
-    @Before
-    public void setUp() {
-        scheduler = Executors.newScheduledThreadPool(1);
-        decoder = new Decoder();
-    }
-
-    @After
-    public void tearDown() {
-        scheduler.shutdown();
-    }
-
-    @Test
-    public void testDtmf4DigitsFast() throws InterruptedException {
-
-        // given
-        final DtmfDetectorListener observer = mock(DtmfDetectorListener.class);
-        final GoertzelDtmfDetector detector = new GoertzelDtmfDetector(-35, 40, 200);
-        detector.observe(observer);
-
-        // when
-        playDtmfPcapFile("/dtmf_4_digits_fast.pcap", detector);
-
-        Thread.sleep(4000);
-
-        // then
-        verify(observer, times(1)).onDtmfDetected("1");
-        verify(observer, times(1)).onDtmfDetected("2");
-        verify(observer, times(1)).onDtmfDetected("3");
-        verify(observer, times(1)).onDtmfDetected("4");
-
-        detector.forget(observer);
-    }
-
-    @Test
-    public void testDtmf4DigitsSlow() throws InterruptedException {
-
-        // given
-        final DtmfDetectorListener observer = mock(DtmfDetectorListener.class);
-        final GoertzelDtmfDetector detector = new GoertzelDtmfDetector(-35, 40, 500);
-        detector.observe(observer);
-
-        // when
-        playDtmfPcapFile("/dtmf_4_digits_slow.pcap", detector);
-
-	Thread.sleep(9000);
-
-        // then
-        verify(observer, times(1)).onDtmfDetected("1");
-        verify(observer, times(1)).onDtmfDetected("2");
-        verify(observer, times(1)).onDtmfDetected("3");
-        verify(observer, times(1)).onDtmfDetected("4");
-
-        detector.forget(observer);
-    }
-
-    @Test
-    public void testDtmf2DigitPairs() throws InterruptedException {
-
-        // given
-        final DtmfDetectorListener observer = mock(DtmfDetectorListener.class);
-        final GoertzelDtmfDetector detector = new GoertzelDtmfDetector(-35, 40, 500);
-        detector.observe(observer);
-
-        // when
-        playDtmfPcapFile("/dtmf_2_digit_pairs.pcap", detector);
-
-        Thread.sleep(5000);
-
-        // then
-        verify(observer, times(2)).onDtmfDetected("1");
-        verify(observer, times(2)).onDtmfDetected("2");
-
-        detector.forget(observer);
-    }
-
-    public void playDtmfPcapFile(String resourceName, GoertzelDtmfDetector detector) {
-        final URL inputFileUrl = this.getClass().getResource(resourceName);
-        PcapFile pcap = new PcapFile(inputFileUrl);
-        try {
-            pcap.open();
-            scheduler.schedule(new PlayPacketTask(pcap, detector, 0.0), 0, TimeUnit.MILLISECONDS);
-        } catch (IOException e) {
-            log.error("Could not read file", e);
-            fail("DTMF tone detector test file access error");
         }
     }
 }

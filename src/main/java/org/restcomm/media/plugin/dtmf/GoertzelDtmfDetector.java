@@ -27,8 +27,6 @@ import org.restcomm.media.core.component.audio.GoertzelFilter;
 import org.restcomm.media.core.resource.dtmf.DtmfDetector;
 import org.restcomm.media.core.resource.dtmf.DtmfDetectorListener;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -51,7 +49,7 @@ public class GoertzelDtmfDetector implements DtmfDetector {
 
     private static final Logger logger = LogManager.getLogger(GoertzelDtmfDetector.class);
 
-    public final static String[][] events = new String[][]{{"1", "2", "3", "A"}, {"4", "5", "6", "B"}, {"7", "8", "9", "C"}, {"*", "0", "#", "D"}};
+    private final static String[][] events = new String[][]{{"1", "2", "3", "A"}, {"4", "5", "6", "B"}, {"7", "8", "9", "C"}, {"*", "0", "#", "D"}};
 
     private final static int[] lowFreq = new int[]{697, 770, 852, 941};
     private final static int[] highFreq = new int[]{1209, 1336, 1477, 1633};
@@ -61,13 +59,10 @@ public class GoertzelDtmfDetector implements DtmfDetector {
 
     private final double threshold;
 
-    private final int level;
     private int offset;
 
-    private final int toneDuration;
     private final int toneInterval;
     private final int N;
-    private final double scale;
 
     private final double p[];
     private final double P[];
@@ -82,11 +77,9 @@ public class GoertzelDtmfDetector implements DtmfDetector {
 
     public GoertzelDtmfDetector(int toneVolume, int toneDuration, int toneInterval) {
         // Detector Configuration
-        this.level = toneVolume;
-        this.threshold = Math.pow(Math.pow(10, this.level), 0.1) * Short.MAX_VALUE;
-        this.toneDuration = toneDuration;
+        this.threshold = Math.pow(Math.pow(10, toneVolume), 0.1) * Short.MAX_VALUE;
         this.toneInterval = toneInterval;
-        this.scale = toneDuration / 1000.0;
+        double scale = toneDuration / 1000.0;
         this.N = 8 * toneDuration;
         this.signal = new double[N];
         for (int i = 0; i < 4; i++) {
