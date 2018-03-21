@@ -61,6 +61,8 @@ public class GoertzelDtmfDetector implements DtmfDetector {
 
     private int offset;
 
+    private final int toneVolume;
+    private final int toneDuration;
     private final int toneInterval;
     private final int N;
 
@@ -78,6 +80,8 @@ public class GoertzelDtmfDetector implements DtmfDetector {
     public GoertzelDtmfDetector(int toneVolume, int toneDuration, int toneInterval) {
         // Detector Configuration
         this.threshold = Math.pow(Math.pow(10, toneVolume), 0.1) * Short.MAX_VALUE;
+        this.toneVolume = toneVolume;
+        this.toneDuration = toneDuration;
         this.toneInterval = toneInterval;
         double scale = toneDuration / 1000.0;
         this.N = 8 * toneDuration;
@@ -236,7 +240,7 @@ public class GoertzelDtmfDetector implements DtmfDetector {
 
     @Override
     public int getDbi() {
-        return level;
+        return toneVolume;
     }
 
     @Override
