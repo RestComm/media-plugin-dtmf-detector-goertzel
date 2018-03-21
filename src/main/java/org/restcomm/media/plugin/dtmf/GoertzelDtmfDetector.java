@@ -234,6 +234,21 @@ public class GoertzelDtmfDetector implements DtmfDetector {
         return events[fm][Fm];
     }
 
+    @Override
+    public int getDbi() {
+        return level;
+    }
+
+    @Override
+    public int getToneDuration() {
+        return toneDuration;
+    }
+
+    @Override
+    public int getToneInterval() {
+        return toneInterval;
+    }
+
     public void observe(DtmfDetectorListener listener) {
         final boolean added = this.listeners.add(listener);
         if (added && logger.isDebugEnabled()) {
