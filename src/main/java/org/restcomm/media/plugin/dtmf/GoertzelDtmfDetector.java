@@ -1,8 +1,7 @@
 /*
- * JBoss, Home of Professional Open Source
- * Copyright 2011, Red Hat, Inc. and individual contributors
- * by the @authors tag. See the copyright.txt in the distribution for a
- * full listing of individual contributors.
+ * TeleStax, Open Source Cloud Communications
+ * Copyright 2011-2018, Telestax Inc and individual contributors
+ * by the @authors tag.
  *
  * This is free software; you can redistribute it and/or modify it
  * under the terms of the GNU Lesser General Public License as
@@ -22,33 +21,22 @@
 
 package org.restcomm.media.plugin.dtmf;
 
-import java.io.IOException;
-import java.util.Collection;
-import java.util.Iterator;
-import java.util.Queue;
-import java.util.concurrent.ConcurrentLinkedQueue;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.restcomm.media.ComponentType;
-import org.restcomm.media.component.audio.GoertzelFilter;
+import org.restcomm.media.core.component.audio.GoertzelFilter;
 import org.restcomm.media.core.resource.dtmf.DtmfDetector;
 import org.restcomm.media.core.resource.dtmf.DtmfDetectorListener;
-import org.restcomm.media.resource.dtmf.DtmfBuffer;
-import org.restcomm.media.spi.format.Format;
-import org.restcomm.media.spi.format.FormatFactory;
-import org.restcomm.media.spi.format.Formats;
-import org.restcomm.media.spi.listener.Listeners;
-import org.restcomm.media.spi.listener.TooManyListenersException;
-import org.restcomm.media.spi.memory.Frame;
+
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Implements inband DTMF detector.
- *
+ * <p>
  * Inband means that DTMF is transmitted within the audio of the phone conversation, i.e. it is audible to the conversation
  * partners. Therefore only uncompressed codecs like g711 alaw or ulaw can carry inband DTMF reliably. Female voice are known to
  * once in a while trigger the recognition of a DTMF tone. For analog lines inband is the only possible means to transmit DTMF.
- *
+ * <p>
  * Though Inband DTMF detection may work for other codecs like SPEEX, GSM, G729 as DtmfDetector is using DSP in front of
  * InbandDetector there is no guarantee that it will always work. In future MMS may not have DSP in front of InbandDetector and
  * hence Inband detection for codecs like SPEEX, GSM, G729 may completely stop
@@ -59,33 +47,22 @@ import org.restcomm.media.spi.memory.Frame;
  */
 public class GoertzelDtmfDetector implements DtmfDetector {
 
-    private static final long serialVersionUID = 450306501541827622L;
+    private static final Logger logger = LogManager.getLogger(GoertzelDtmfDetector.class);
 
-    private final static Format linear = FormatFactory.createAudioFormat("linear", 8000, 16, 1);
-    private final static Formats formats = new Formats();
+    private final static String[][] events = new String[][]{{"1", "2", "3", "A"}, {"4", "5", "6", "B"}, {"7", "8", "9", "C"}, {"*", "0", "#", "D"}};
 
-    static {
-        formats.add(linear);
-    }
-
-    public final static String[][] events = new String[][] { { "1", "2", "3", "A" }, { "4", "5", "6", "B" }, { "7", "8", "9", "C" }, { "*", "0", "#", "D" } };
-    private final static String[] oobEvtID = new String[] { "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "#", "A", "B", "C", "D" };
-
-    private final static int[] lowFreq = new int[] { 697, 770, 852, 941 };
-    private final static int[] highFreq = new int[] { 1209, 1336, 1477, 1633 };
+    private final static int[] lowFreq = new int[]{697, 770, 852, 941};
+    private final static int[] highFreq = new int[]{1209, 1336, 1477, 1633};
 
     private final GoertzelFilter[] lowFreqFilters = new GoertzelFilter[4];
     private final GoertzelFilter[] highFreqFilters = new GoertzelFilter[4];
 
     private final double threshold;
 
-    private final int level;
     private int offset;
 
-    private final int toneDuration;
     private final int toneInterval;
     private final int N;
-    private final double scale;
 
     private final double p[];
     private final double P[];
@@ -96,24 +73,13 @@ public class GoertzelDtmfDetector implements DtmfDetector {
     private long elapsedTime;
     private volatile boolean waiting;
 
-    private final DtmfBuffer dtmfBuffer;
-
-    private final Listeners<org.restcomm.media.spi.dtmf.DtmfDetectorListener> listeners = new Listeners<org.restcomm.media.spi.dtmf.DtmfDetectorListener>();
-
-    private static final Logger logger = LogManager.getLogger(GoertzelDtmfDetector.class);
+    private final Set<DtmfDetectorListener> listeners = ConcurrentHashMap.newKeySet();
 
     public GoertzelDtmfDetector(int toneVolume, int toneDuration, int toneInterval) {
-
-        // DTMF Components
-        this.dtmfBuffer = new DtmfBuffer(null);
-        this.dtmfBuffer.setInterdigitInterval(toneInterval);
-
         // Detector Configuration
-        this.level = toneVolume;
-        this.threshold = Math.pow(Math.pow(10, this.level), 0.1) * Short.MAX_VALUE;
-        this.toneDuration = toneDuration;
+        this.threshold = Math.pow(Math.pow(10, toneVolume), 0.1) * Short.MAX_VALUE;
         this.toneInterval = toneInterval;
-        this.scale = toneDuration / 1000.0;
+        double scale = toneDuration / 1000.0;
         this.N = 8 * toneDuration;
         this.signal = new double[N];
         for (int i = 0; i < 4; i++) {
@@ -131,29 +97,7 @@ public class GoertzelDtmfDetector implements DtmfDetector {
     }
 
     public GoertzelDtmfDetector() {
-        //this(DEFAULT_SIGNAL_LEVEL, DEFAULT_SIGNAL_DURATION, DEFAULT_INTERDIGIT_INTERVAL);
-        this(0, 0, 0);
-    }
-
-    public void activate() {
-        this.offset = 0;
-        this.maxAmpl = 0;
-        this.lastTone = "";
-        this.elapsedTime = 0;
-        this.waiting = false;
-
-        this.dtmfBuffer.clear();
-    }
-
-    public void deactivate() {
-    }
-
-    public int getDuration() {
-        return this.toneDuration;
-    }
-
-    public int getVolume() {
-        return level;
+        this(-35, 80, 20);
     }
 
     @Override
@@ -162,14 +106,13 @@ public class GoertzelDtmfDetector implements DtmfDetector {
         // until a period of data (based on frame duration accumulation) elapses.
         if (waiting) {
             this.elapsedTime += duration;
-            this.waiting = (this.elapsedTime < this.toneInterval * 1000000);
+            this.waiting = (this.elapsedTime < this.toneInterval);
 
             if (waiting) {
                 return;
             } else {
                 if (logger.isTraceEnabled()) {
-                    logger.trace(
-                            "Waiting: " + waiting + " [last tone=" + this.lastTone + ", elapsed time=" + elapsedTime + "]");
+                    logger.trace("Waiting: " + waiting + " [last tone=" + this.lastTone + ", elapsed time=" + elapsedTime + "]");
                 }
             }
         }
@@ -210,8 +153,10 @@ public class GoertzelDtmfDetector implements DtmfDetector {
                             logger.trace("Waiting: " + waiting + " [last tone=" + this.lastTone + ", elapsed time=" + elapsedTime + "]");
                         }
 
-                        // Push tone into DTMF buffer
-                        dtmfBuffer.push(tone);
+                        // Inform liteners about DTMF tone detection
+                        for (DtmfDetectorListener listener : listeners) {
+                            listener.onDtmfDetected(tone);
+                        }
                     }
                 }
             }
@@ -220,7 +165,6 @@ public class GoertzelDtmfDetector implements DtmfDetector {
 
     private void getPower(GoertzelFilter[] filters, double[] data, int offset, double[] power) {
         for (int i = 0; i < 4; i++) {
-            // power[i] = filter.getPower(freq[i], data, 0, data.length, (double) TONE_DURATION / (double) 1000);
             power[i] = filters[i].getPower(data, offset);
         }
     }
@@ -228,7 +172,7 @@ public class GoertzelDtmfDetector implements DtmfDetector {
     /**
      * Searches maximum value in the specified array.
      *
-     * @param data[] input data.
+     * @param data input data.
      * @return the index of the maximum value in the data array.
      */
     private int getMax(double data[]) {
@@ -290,39 +234,18 @@ public class GoertzelDtmfDetector implements DtmfDetector {
         return events[fm][Fm];
     }
 
-    public Formats getNativeFormats() {
-        return formats;
+    public void observe(DtmfDetectorListener listener) {
+        final boolean added = this.listeners.add(listener);
+        if (added && logger.isDebugEnabled()) {
+            logger.debug("Registered listener DtmfDetectorListener@" + listener.hashCode() + ". Count: " + listeners.size());
+        }
     }
 
-    public int getInterdigitInterval() {
-        return this.toneInterval;
-    }
-
-    protected void fireEvent(String tone) {
-    }
-
-    public void flushBuffer() {
-        dtmfBuffer.flush();
-    }
-
-    public void clearBuffer() {
-        dtmfBuffer.clear();
-    }
-
-    public void addListener(DtmfDetectorListener listener) throws TooManyListenersException {
-        //listeners.add(listener);
-    }
-
-    public void removeListener(DtmfDetectorListener listener) {
-        //listeners.remove(listener);
-    }
-
-    public void clearAllListeners() {
-        listeners.clear();
-    }
-
-    public void clearDigits() {
-        dtmfBuffer.clear();
+    public void forget(DtmfDetectorListener listener) {
+        final boolean removed = listeners.remove(listener);
+        if (removed && logger.isDebugEnabled()) {
+            logger.debug("Unregistered listener DtmfDetectorListener@" + listener.hashCode() + ". Count: " + listeners.size());
+        }
     }
 
 }

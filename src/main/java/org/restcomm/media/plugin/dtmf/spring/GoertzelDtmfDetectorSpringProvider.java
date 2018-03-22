@@ -34,7 +34,6 @@ import org.springframework.stereotype.Component;
  *
  * @author Vladimir Morosev (vladimir.morosev@telestax.com)
  */
-@Order(0)
 @Component("media-plugin-dtmf-detector-goertzel")
 @ConditionalOnBean(GoertzelDtmfDetectorSpringProvider.class)
 public class GoertzelDtmfDetectorSpringProvider implements DtmfDetectorProvider {
@@ -52,5 +51,6 @@ public class GoertzelDtmfDetectorSpringProvider implements DtmfDetectorProvider 
     public DtmfDetector provide() {
         return new GoertzelDtmfDetector(toneVolume, toneDuration, toneInterval);
     }
+
 }
 

@@ -30,8 +30,10 @@
             <artifactId>media-core-component</artifactId>
             <version>${restcomm.media.core.version}</version>
         </dependency>
+
+        <!-- Test -->
         <dependency>
-	    <groupId>org.restcomm.media.core</groupId>
+            <groupId>org.restcomm.media.core</groupId>
             <artifactId>media-core-pcap</artifactId>
             <version>${restcomm.media.core.version}</version>
             <scope>test</scope>
@@ -45,7 +47,7 @@
         <dependency>
             <groupId>org.restcomm.media.core.codec</groupId>
             <artifactId>media-core-codec-g711</artifactId>
-	    <version>${restcomm.media.core.version}</version>
+            <version>${restcomm.media.core.version}</version>
             <scope>test</scope>
         </dependency>
 
@@ -53,6 +55,23 @@
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <!-- Mockito -->
+        <dependency>
+            <groupId>org.mockito</groupId>
+            <artifactId>mockito-all</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.powermock</groupId>
+            <artifactId>powermock-module-junit4</artifactId>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.powermock</groupId>
+            <artifactId>powermock-api-mockito</artifactId>
             <scope>test</scope>
         </dependency>
 

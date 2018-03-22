@@ -1,5 +1,5 @@
 media-plugin-dtmf-detector-goertzel:
   enabled: true
-  toneVolume: 0
-  toneDuration: 0
-  toneInterval: 0
+  toneVolume: -30
+  toneDuration: 80
+  toneInterval: 20
