@@ -68,18 +68,19 @@ public class GoertzelDtmfDetectorTest {
     @Test
     public void testDtmf4DigitsFast() throws InterruptedException {
         // given
+        final int duration = 1200;
         final DtmfDetectorListener observer = mock(DtmfDetectorListener.class);
-        final GoertzelDtmfDetector detector = new GoertzelDtmfDetector(-35, 80, 20);
+        final GoertzelDtmfDetector detector = new GoertzelDtmfDetector(-35, 100, 100);
         detector.observe(observer);
 
         // when
         playDtmfPcapFile("/dtmf_4_digits_fast.pcap", detector);
 
         // then
-        verify(observer, timeout(4000)).onDtmfDetected("1");
-        verify(observer, timeout(4000)).onDtmfDetected("2");
-        verify(observer, timeout(4000)).onDtmfDetected("3");
-        verify(observer, timeout(4000)).onDtmfDetected("4");
+        verify(observer, timeout(duration)).onDtmfDetected("1");
+        verify(observer, timeout(duration)).onDtmfDetected("2");
+        verify(observer, timeout(duration)).onDtmfDetected("3");
+        verify(observer, timeout(duration)).onDtmfDetected("4");
 
         detector.forget(observer);
     }
@@ -87,18 +88,19 @@ public class GoertzelDtmfDetectorTest {
     @Test
     public void testDtmf4DigitsSlow() throws InterruptedException {
         // given
+        final int duration = 6400;
         final DtmfDetectorListener observer = mock(DtmfDetectorListener.class);
-        final GoertzelDtmfDetector detector = new GoertzelDtmfDetector(-35, 80, 20);
+        final GoertzelDtmfDetector detector = new GoertzelDtmfDetector(-35, 100, 500);
         detector.observe(observer);
 
         // when
         playDtmfPcapFile("/dtmf_4_digits_slow.pcap", detector);
 
         // then
-        verify(observer, timeout(9000)).onDtmfDetected("1");
-        verify(observer, timeout(9000)).onDtmfDetected("2");
-        verify(observer, timeout(9000)).onDtmfDetected("3");
-        verify(observer, timeout(9000)).onDtmfDetected("4");
+        verify(observer, timeout(duration)).onDtmfDetected("1");
+        verify(observer, timeout(duration)).onDtmfDetected("2");
+        verify(observer, timeout(duration)).onDtmfDetected("3");
+        verify(observer, timeout(duration)).onDtmfDetected("4");
 
         detector.forget(observer);
     }
@@ -106,16 +108,17 @@ public class GoertzelDtmfDetectorTest {
     @Test
     public void testDtmf2DigitPairs() throws InterruptedException {
         // given
+        final int duration = 4100;
         final DtmfDetectorListener observer = mock(DtmfDetectorListener.class);
-        final GoertzelDtmfDetector detector = new GoertzelDtmfDetector(-35, 80, 20);
+        final GoertzelDtmfDetector detector = new GoertzelDtmfDetector(-35, 100, 200);
         detector.observe(observer);
 
         // when
         playDtmfPcapFile("/dtmf_2_digit_pairs.pcap", detector);
 
         // then
-        verify(observer, timeout(5000).times(2)).onDtmfDetected("1");
-        verify(observer, timeout(5000).times(2)).onDtmfDetected("2");
+        verify(observer, timeout(duration).times(2)).onDtmfDetected("1");
+        verify(observer, timeout(duration).times(2)).onDtmfDetected("2");
 
         detector.forget(observer);
     }
