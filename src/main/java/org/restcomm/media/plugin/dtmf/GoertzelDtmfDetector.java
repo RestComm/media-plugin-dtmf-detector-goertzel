@@ -24,8 +24,9 @@ package org.restcomm.media.plugin.dtmf;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.restcomm.media.core.component.audio.GoertzelFilter;
-import org.restcomm.media.core.resource.dtmf.DtmfDetector;
-import org.restcomm.media.core.resource.dtmf.DtmfDetectorListener;
+import org.restcomm.media.core.resource.dtmf.AbstractDtmfDetector;
+import org.restcomm.media.core.resource.dtmf.DtmfEvent;
+import org.restcomm.media.core.resource.dtmf.DtmfEventObserver;
 
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
@@ -45,7 +46,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * @author amit bhayani
  * @author Henrique Rosa (henrique.rosa@telestax.com)
  */
-public class GoertzelDtmfDetector implements DtmfDetector {
+public class GoertzelDtmfDetector extends AbstractDtmfDetector {
 
     private static final Logger logger = LogManager.getLogger(GoertzelDtmfDetector.class);
 
@@ -75,8 +76,6 @@ public class GoertzelDtmfDetector implements DtmfDetector {
     private long elapsedTime;
     private volatile boolean waiting;
 
-    private final Set<DtmfDetectorListener> listeners = ConcurrentHashMap.newKeySet();
-
     public GoertzelDtmfDetector(int toneVolume, int toneDuration, int toneInterval) {
         // Detector Configuration
         this.threshold = Math.pow(Math.pow(10, toneVolume), 0.1) * Short.MAX_VALUE;
@@ -105,7 +104,7 @@ public class GoertzelDtmfDetector implements DtmfDetector {
     }
 
     @Override
-    public void detect(byte[] data, long duration) {
+    public void detect(byte[] data, long duration, long sequenceNumber) {
         // If Detector is in WAITING state, then drop packets
         // until a period of data (based on frame duration accumulation) elapses.
         if (waiting) {
@@ -158,9 +157,7 @@ public class GoertzelDtmfDetector implements DtmfDetector {
                         }
 
                         // Inform liteners about DTMF tone detection
-                        for (DtmfDetectorListener listener : listeners) {
-                            listener.onDtmfDetected(tone);
-                        }
+                        notify(new DtmfEvent(tone));
                     }
                 }
             }
@@ -236,35 +233,6 @@ public class GoertzelDtmfDetector implements DtmfDetector {
         }
 
         return events[fm][Fm];
-    }
-
-    @Override
-    public int getDbi() {
-        return toneVolume;
-    }
-
-    @Override
-    public int getToneDuration() {
-        return toneDuration;
-    }
-
-    @Override
-    public int getToneInterval() {
-        return toneInterval;
-    }
-
-    public void observe(DtmfDetectorListener listener) {
-        final boolean added = this.listeners.add(listener);
-        if (added && logger.isDebugEnabled()) {
-            logger.debug("Registered listener DtmfDetectorListener@" + listener.hashCode() + ". Count: " + listeners.size());
-        }
-    }
-
-    public void forget(DtmfDetectorListener listener) {
-        final boolean removed = listeners.remove(listener);
-        if (removed && logger.isDebugEnabled()) {
-            logger.debug("Unregistered listener DtmfDetectorListener@" + listener.hashCode() + ". Count: " + listeners.size());
-        }
     }
 
 }
