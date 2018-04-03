@@ -188,7 +188,7 @@ public class GoertzelDtmfDetectorTest {
                 encodedFrame.setDuration(duration);
                 System.arraycopy(rtpPayload, 0, encodedFrame.getData(), 0, rtpPayload.length);
                 Frame decodedFrame = decoder.process(encodedFrame);
-                detector.detect(decodedFrame.getData(), duration, 0);
+                detector.detect(decodedFrame.getData(), duration);
                 scheduler.schedule(new PlayPacketTask(pcap, detector, timestamp), duration, TimeUnit.MILLISECONDS);
             } else {
                 try {

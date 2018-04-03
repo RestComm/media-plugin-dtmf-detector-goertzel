@@ -104,7 +104,7 @@ public class GoertzelDtmfDetector extends AbstractDtmfDetector {
     }
 
     @Override
-    public void detect(byte[] data, long duration, long sequenceNumber) {
+    public void detect(byte[] data, long duration) {
         // If Detector is in WAITING state, then drop packets
         // until a period of data (based on frame duration accumulation) elapses.
         if (waiting) {
