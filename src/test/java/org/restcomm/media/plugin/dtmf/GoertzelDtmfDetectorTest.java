@@ -26,6 +26,7 @@ import org.apache.log4j.Logger;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 import org.restcomm.media.core.codec.g711.alaw.Decoder;
 import org.restcomm.media.core.pcap.GenericPcapReader;
 import org.restcomm.media.core.pcap.PcapFile;
@@ -37,15 +38,14 @@ import org.restcomm.media.core.spi.memory.Memory;
 
 import java.io.IOException;
 import java.net.URL;
-import java.util.Arrays;
+import java.util.List;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.util.List;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.fail;
 import static org.mockito.Mockito.*;
-import org.mockito.ArgumentCaptor;
 
 /**
  * @author yulian oifa
@@ -82,7 +82,7 @@ public class GoertzelDtmfDetectorTest {
 
         // then
         ArgumentCaptor<DtmfEvent> argument = ArgumentCaptor.forClass(DtmfEvent.class);
-        verify(observer, timeout(duration).times(4)).onDtmfEvent(argument.capture());
+        verify(observer, after(duration).times(4)).onDtmfEvent(argument.capture());
         List<DtmfEvent> capturedEvents = argument.getAllValues();
         assertEquals("1", capturedEvents.get(0).getTone());
         assertEquals("2", capturedEvents.get(1).getTone());
@@ -105,7 +105,7 @@ public class GoertzelDtmfDetectorTest {
 
         // then
         ArgumentCaptor<DtmfEvent> argument = ArgumentCaptor.forClass(DtmfEvent.class);
-        verify(observer, timeout(duration).times(4)).onDtmfEvent(argument.capture());
+        verify(observer, after(duration).times(4)).onDtmfEvent(argument.capture());
         List<DtmfEvent> capturedEvents = argument.getAllValues();
         assertEquals("1", capturedEvents.get(0).getTone());
         assertEquals("2", capturedEvents.get(1).getTone());
@@ -128,7 +128,7 @@ public class GoertzelDtmfDetectorTest {
 
         // then
         ArgumentCaptor<DtmfEvent> argument = ArgumentCaptor.forClass(DtmfEvent.class);
-        verify(observer, timeout(duration).times(4)).onDtmfEvent(argument.capture());
+        verify(observer, after(duration).times(4)).onDtmfEvent(argument.capture());
         List<DtmfEvent> capturedEvents = argument.getAllValues();
         assertEquals("1", capturedEvents.get(0).getTone());
         assertEquals("1", capturedEvents.get(1).getTone());
@@ -143,7 +143,8 @@ public class GoertzelDtmfDetectorTest {
         PcapFile pcap = new PcapFile(inputFileUrl);
         try {
             pcap.open();
-            scheduler.schedule(new PlayPacketTask(pcap, detector, null, 0, 0.0), 0, TimeUnit.MILLISECONDS);
+            final PlayPacketTask task = new PlayPacketTask(pcap, detector, null, 0, 0.0);
+            scheduler.scheduleAtFixedRate(task, 0L, 20L, TimeUnit.MILLISECONDS);
         } catch (IOException e) {
             log.error("Could not read file", e);
             fail("DTMF tone detector test file access error");
@@ -154,40 +155,27 @@ public class GoertzelDtmfDetectorTest {
 
         private PcapFile pcap;
         private GoertzelDtmfDetector detector;
-        private byte[] lastPacketDecodedData;
-        private int lastPacketDuration;
         private double lastPacketTimestamp;
 
         public PlayPacketTask(PcapFile pcap, GoertzelDtmfDetector detector, byte[] decodedData, int duration, double timestamp) {
             this.pcap = pcap;
             this.detector = detector;
-            this.lastPacketDecodedData = decodedData;
-            this.lastPacketDuration = duration;
             this.lastPacketTimestamp = timestamp;
-
-	}
+        }
 
         public void run() {
-            if (lastPacketDecodedData != null) {
-                detector.detect(lastPacketDecodedData, lastPacketDuration);
-            }
-
-	    if (!pcap.isComplete()) {
+            if (!pcap.isComplete()) {
                 final Packet packet = pcap.read();
                 byte[] payload = (byte[]) packet.get(GenericPcapReader.PAYLOAD);
 
                 final RtpPacket rtpPacket = new RtpPacket(false);
                 rtpPacket.wrap(payload);
 
-                byte[] rtpPayload = new byte[rtpPacket.getPayloadLength()];
+                final byte[] rtpPayload = new byte[rtpPacket.getPayloadLength()];
                 rtpPacket.getPayload(rtpPayload);
 
-                double timestamp = (double) packet.get(Packet.TIMESTAMP_USEC);
-                int duration;
-                if (lastPacketTimestamp == 0.0)
-                    duration = 20;
-                else
-                    duration = (int) ((timestamp - lastPacketTimestamp) * 1000);
+                final double timestamp = (double) packet.get(Packet.TIMESTAMP_USEC);
+                final int duration = (lastPacketTimestamp == 0.0) ? 20 : (int) ((timestamp - lastPacketTimestamp) * 1000);;
 
                 Frame encodedFrame = Memory.allocate(rtpPayload.length);
                 encodedFrame.setOffset(0);
@@ -197,7 +185,8 @@ public class GoertzelDtmfDetectorTest {
                 encodedFrame.setDuration(duration);
                 System.arraycopy(rtpPayload, 0, encodedFrame.getData(), 0, rtpPayload.length);
                 Frame decodedFrame = decoder.process(encodedFrame);
-                scheduler.schedule(new PlayPacketTask(pcap, detector, decodedFrame.getData(), duration, timestamp), duration, TimeUnit.MILLISECONDS);
+
+                this.detector.detect(decodedFrame.getData(), duration);
             } else {
                 try {
                     pcap.close();
