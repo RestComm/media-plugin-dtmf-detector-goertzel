@@ -21,12 +21,10 @@
 
 package org.restcomm.media.plugin.dtmf.spring;
 
-import org.restcomm.media.plugin.dtmf.GoertzelDtmfDetector;
 import org.restcomm.media.core.resource.dtmf.DtmfDetector;
 import org.restcomm.media.core.resource.dtmf.DtmfDetectorProvider;
-import org.springframework.beans.factory.annotation.Value;
+import org.restcomm.media.plugin.dtmf.GoertzelDtmfDetector;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
-import org.springframework.core.annotation.Order;
 import org.springframework.stereotype.Component;
 
 /**

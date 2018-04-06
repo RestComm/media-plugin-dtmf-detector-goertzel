@@ -26,10 +26,6 @@ import org.apache.logging.log4j.Logger;
 import org.restcomm.media.core.component.audio.GoertzelFilter;
 import org.restcomm.media.core.resource.dtmf.AbstractDtmfDetector;
 import org.restcomm.media.core.resource.dtmf.DtmfEvent;
-import org.restcomm.media.core.resource.dtmf.DtmfEventObserver;
-
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * Implements inband DTMF detector.

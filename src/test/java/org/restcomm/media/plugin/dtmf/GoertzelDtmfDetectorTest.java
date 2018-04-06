@@ -70,7 +70,7 @@ public class GoertzelDtmfDetectorTest {
     }
 
     @Test
-    public void testDtmf4DigitsFast() throws InterruptedException {
+    public void testDtmf4DigitsFast() {
         // given
         final int duration = 1200;
         final DtmfEventObserver observer = mock(DtmfEventObserver.class);
@@ -93,7 +93,7 @@ public class GoertzelDtmfDetectorTest {
     }
 
     @Test
-    public void testDtmf4DigitsSlow() throws InterruptedException {
+    public void testDtmf4DigitsSlow() {
         // given
         final int duration = 6400;
         final DtmfEventObserver observer = mock(DtmfEventObserver.class);
@@ -116,7 +116,7 @@ public class GoertzelDtmfDetectorTest {
     }
 
     @Test
-    public void testDtmf2DigitPairs() throws InterruptedException {
+    public void testDtmf2DigitPairs() {
         // given
         final int duration = 4100;
         final DtmfEventObserver observer = mock(DtmfEventObserver.class);
@@ -138,7 +138,7 @@ public class GoertzelDtmfDetectorTest {
         detector.forget(observer);
     }
 
-    public void playDtmfPcapFile(String resourceName, GoertzelDtmfDetector detector) {
+    private void playDtmfPcapFile(String resourceName, GoertzelDtmfDetector detector) {
         final URL inputFileUrl = this.getClass().getResource(resourceName);
         PcapFile pcap = new PcapFile(inputFileUrl);
         try {
@@ -157,7 +157,7 @@ public class GoertzelDtmfDetectorTest {
         private GoertzelDtmfDetector detector;
         private double lastPacketTimestamp;
 
-        public PlayPacketTask(PcapFile pcap, GoertzelDtmfDetector detector, byte[] decodedData, int duration, double timestamp) {
+        PlayPacketTask(PcapFile pcap, GoertzelDtmfDetector detector, byte[] decodedData, int duration, double timestamp) {
             this.pcap = pcap;
             this.detector = detector;
             this.lastPacketTimestamp = timestamp;
@@ -175,7 +175,7 @@ public class GoertzelDtmfDetectorTest {
                 rtpPacket.getPayload(rtpPayload);
 
                 final double timestamp = (double) packet.get(Packet.TIMESTAMP_USEC);
-                final int duration = (lastPacketTimestamp == 0.0) ? 20 : (int) ((timestamp - lastPacketTimestamp) * 1000);;
+                final int duration = (lastPacketTimestamp == 0.0) ? 20 : (int) ((timestamp - lastPacketTimestamp) * 1000);
 
                 Frame encodedFrame = Memory.allocate(rtpPayload.length);
                 encodedFrame.setOffset(0);
