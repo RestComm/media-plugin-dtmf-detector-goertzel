@@ -21,8 +21,8 @@
 
 package org.restcomm.media.plugin.dtmf.spring;
 
-import org.restcomm.media.core.resource.dtmf.DtmfDetector;
-import org.restcomm.media.core.resource.dtmf.DtmfDetectorProvider;
+import org.restcomm.media.core.resource.dtmf.detector.DtmfDetector;
+import org.restcomm.media.core.resource.dtmf.detector.DtmfDetectorProvider;
 import org.restcomm.media.plugin.dtmf.GoertzelDtmfDetector;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Component;

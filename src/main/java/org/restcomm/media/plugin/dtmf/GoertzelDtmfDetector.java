@@ -24,8 +24,8 @@ package org.restcomm.media.plugin.dtmf;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.restcomm.media.core.component.audio.GoertzelFilter;
-import org.restcomm.media.core.resource.dtmf.AbstractDtmfDetector;
-import org.restcomm.media.core.resource.dtmf.DtmfEvent;
+import org.restcomm.media.core.resource.dtmf.detector.AbstractDtmfDetector;
+import org.restcomm.media.core.resource.dtmf.detector.DtmfEvent;
 
 /**
  * Implements inband DTMF detector.

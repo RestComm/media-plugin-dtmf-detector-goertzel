@@ -30,8 +30,8 @@ import org.mockito.ArgumentCaptor;
 import org.restcomm.media.core.codec.g711.alaw.Decoder;
 import org.restcomm.media.core.pcap.GenericPcapReader;
 import org.restcomm.media.core.pcap.PcapFile;
-import org.restcomm.media.core.resource.dtmf.DtmfEvent;
-import org.restcomm.media.core.resource.dtmf.DtmfEventObserver;
+import org.restcomm.media.core.resource.dtmf.detector.DtmfEvent;
+import org.restcomm.media.core.resource.dtmf.detector.DtmfEventObserver;
 import org.restcomm.media.core.rtp.RtpPacket;
 import org.restcomm.media.core.spi.memory.Frame;
 import org.restcomm.media.core.spi.memory.Memory;
@@ -143,7 +143,7 @@ public class GoertzelDtmfDetectorTest {
         PcapFile pcap = new PcapFile(inputFileUrl);
         try {
             pcap.open();
-            final PlayPacketTask task = new PlayPacketTask(pcap, detector, null, 0, 0.0);
+            final PlayPacketTask task = new PlayPacketTask(pcap, detector,0.0);
             scheduler.scheduleAtFixedRate(task, 0L, 20L, TimeUnit.MILLISECONDS);
         } catch (IOException e) {
             log.error("Could not read file", e);
@@ -157,7 +157,7 @@ public class GoertzelDtmfDetectorTest {
         private GoertzelDtmfDetector detector;
         private double lastPacketTimestamp;
 
-        PlayPacketTask(PcapFile pcap, GoertzelDtmfDetector detector, byte[] decodedData, int duration, double timestamp) {
+        PlayPacketTask(PcapFile pcap, GoertzelDtmfDetector detector, double timestamp) {
             this.pcap = pcap;
             this.detector = detector;
             this.lastPacketTimestamp = timestamp;
