@@ -6,11 +6,11 @@
     <parent>
         <groupId>org.restcomm.media</groupId>
         <artifactId>media-parent</artifactId>
-        <version>8.0.0-SNAPSHOT</version>
+        <version>8.0.0-32</version>
     </parent>
 
     <properties>
-        <restcomm.media.core.version>8.1.2-SNAPSHOT</restcomm.media.core.version>
+        <restcomm.media.core.version>[8.2.0-SNAPSHOT,9.0.0-!)</restcomm.media.core.version>
     </properties>
 
     <groupId>org.restcomm.media.plugin.dtmf</groupId>
@@ -24,11 +24,13 @@
             <groupId>org.restcomm.media.core.resource</groupId>
             <artifactId>media-core-resource-dtmf</artifactId>
             <version>${restcomm.media.core.version}</version>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.restcomm.media.core</groupId>
             <artifactId>media-core-component</artifactId>
             <version>${restcomm.media.core.version}</version>
+            <scope>provided</scope>
         </dependency>
 
         <!-- Test -->
